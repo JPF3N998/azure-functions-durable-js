@@ -10,7 +10,7 @@ export class DurableOrchestrationStatus implements types.DurableOrchestrationSta
     public readonly output: unknown;
     public readonly runtimeStatus: OrchestrationRuntimeStatus;
     public readonly customStatus?: unknown;
-    public readonly history?: Array<unknown>;
+    public readonly historyEvents?: Array<unknown>;
 
     /** @hidden */
     constructor(init: unknown) {
@@ -30,7 +30,7 @@ export class DurableOrchestrationStatus implements types.DurableOrchestrationSta
         this.output = init.output;
         this.runtimeStatus = init.runtimeStatus as OrchestrationRuntimeStatus;
         this.customStatus = init.customStatus;
-        this.history = init.history;
+        this.historyEvents = init.historyEvents;
     }
 
     private isDurableOrchestrationStatusInit(obj: unknown): obj is DurableOrchestrationStatusInit {
@@ -58,5 +58,5 @@ interface DurableOrchestrationStatusInit {
     output: unknown;
     runtimeStatus: string;
     customStatus?: unknown;
-    history?: Array<unknown>;
+    historyEvents?: Array<unknown>;
 }
