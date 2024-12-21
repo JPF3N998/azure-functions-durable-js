@@ -49,7 +49,7 @@ export class DurableOrchestrationStatus implements types.DurableOrchestrationSta
     }
 }
 
-interface DurableOrchestrationStatusInit {
+export interface DurableOrchestrationStatusInit {
     name: string;
     instanceId: string;
     createdTime: string | Date;
