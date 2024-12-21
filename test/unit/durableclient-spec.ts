@@ -5,7 +5,10 @@ import nock = require("nock");
 import url = require("url");
 import { HttpManagementPayload } from "../../src/http/HttpManagementPayload";
 import { OrchestrationRuntimeStatus } from "../../src/orchestrations/OrchestrationRuntimeStatus";
-import { DurableOrchestrationStatus } from "../../src/orchestrations/DurableOrchestrationStatus";
+import {
+    DurableOrchestrationStatus,
+    DurableOrchestrationStatusInit,
+} from "../../src/orchestrations/DurableOrchestrationStatus";
 import { EntityId } from "../../src/entities/EntityId";
 import { EntityStateResponse } from "../../src/entities/EntityStateResponse";
 import { OrchestrationClientInputData } from "../../src/durableClient/OrchestrationClientInputData";
@@ -194,22 +197,55 @@ describe("Durable client RPC endpoint", () => {
             expect(result).to.be.an("object");
         });
 
-        it("uses the RPC endpoint (with all query params)", async () => {
-            const input = JSON.parse(durableClientBindingInputJson) as OrchestrationClientInputData;
-            const client = new DurableClient(input);
+        describe("with query params", () => {
+            it("uses the RPC endpoint (with all query params)", async () => {
+                const input = JSON.parse(
+                    durableClientBindingInputJson
+                ) as OrchestrationClientInputData;
+                const client = new DurableClient(input);
 
-            // The getStatus() method should do a GET to http://127.0.0.1:17071/durabletask/instances/abc123?showInput=true&showHistory=true&showHistoryOutput=true
-            const instanceId = "abc123";
-            const expectedUrl = new URL(`${testRpcOrigin}/durabletask/instances/${instanceId}`);
+                // The getStatus() method should do a GET to http://127.0.0.1:17071/durabletask/instances/abc123?showInput=true&showHistory=true&showHistoryOutput=true
+                const instanceId = "abc123";
+                const expectedUrl = new URL(`${testRpcOrigin}/durabletask/instances/${instanceId}`);
 
-            const scope = nock(expectedUrl.origin)
-                .get(expectedUrl.pathname)
-                .query({
-                    showInput: true,
+                const scope = nock(expectedUrl.origin)
+                    .get(expectedUrl.pathname)
+                    .query({
+                        showInput: true,
+                        showHistory: true,
+                        showHistoryOutput: true,
+                    })
+                    .reply(202, {
+                        name: "testOrchestration",
+                        instanceId: "testInstanceId",
+                        input: null,
+                        output: null,
+                        createdTime: "2020-01-01T05:00:00Z",
+                        lastUpdatedTime: "2020-01-01T05:00:00Z",
+                        runtimeStatus: "Pending",
+                        historyEvents: [],
+                    });
+
+                const result = await client.getStatus(instanceId, {
                     showHistory: true,
                     showHistoryOutput: true,
-                })
-                .reply(202, {
+                    showInput: true,
+                });
+                expect(scope.isDone()).to.be.equal(true);
+                expect(result).to.be.an("object");
+            });
+
+            it("should return 'historyEvents' property on response when query param 'showHistory' is true", async () => {
+                const input = JSON.parse(
+                    durableClientBindingInputJson
+                ) as OrchestrationClientInputData;
+                const client = new DurableClient(input);
+
+                // The getStatus() method should do a GET to http://127.0.0.1:17071/durabletask/instances/abc123?showInput=true&showHistory=true&showHistoryOutput=true
+                const instanceId = "abc123";
+                const expectedUrl = new URL(`${testRpcOrigin}/durabletask/instances/${instanceId}`);
+
+                const mockResponse: DurableOrchestrationStatusInit = {
                     name: "testOrchestration",
                     instanceId: "testInstanceId",
                     input: null,
@@ -217,16 +253,25 @@ describe("Durable client RPC endpoint", () => {
                     createdTime: "2020-01-01T05:00:00Z",
                     lastUpdatedTime: "2020-01-01T05:00:00Z",
                     runtimeStatus: "Pending",
-                    history: [],
+                    historyEvents: [],
+                };
+
+                const scope = nock(expectedUrl.origin)
+                    .get(expectedUrl.pathname)
+                    .query({ showHistory: true })
+                    .reply(202, mockResponse);
+
+                const result = await client.getStatus(instanceId, {
+                    showHistory: true,
                 });
 
-            const result = await client.getStatus(instanceId, {
-                showHistory: true,
-                showHistoryOutput: true,
-                showInput: true,
+                expect(scope.isDone()).to.be.equal(true);
+                // historyEvents is undefined when showHistory query is not passed
+                expect(
+                    Array.isArray(result.historyEvents),
+                    "historyEvents to be an array"
+                ).to.equal(true);
             });
-            expect(scope.isDone()).to.be.equal(true);
-            expect(result).to.be.an("object");
         });
     });
 
